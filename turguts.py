@@ -3,13 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
-st.set_page_config(page_title="Turgut Şekerler – IC₅₀ Hesaplayıcı", layout="centered")
+# =========================
+# PAGE CONFIG
+# =========================
+st.set_page_config(
+    page_title="Turgut Şekerler – IC₅₀ Hesaplayıcı",
+    layout="centered"
+)
 
 # =========================
-# TITLE
+# HEADER
 # =========================
 st.title("Turgut Şekerler – IC₅₀ Hesaplayıcı")
-st.caption("4-parametreli lojistik regresyon (4PL), %95 güven aralığı ile")
+st.caption("v1.0 · Kontrole normalize edilmiş 4-parametreli lojistik regresyon (4PL)")
 
 # =========================
 # 4PL MODEL
@@ -50,7 +56,6 @@ st.header("Kontrol kuyucukları (Absorbans)")
 
 control_cols = st.columns(replicates)
 control_vals = []
-
 for i, col in enumerate(control_cols):
     control_vals.append(
         col.number_input(
@@ -80,7 +85,6 @@ for i in range(int(num_conc)):
 
     cols = st.columns(replicates)
     abs_vals = []
-
     for j, col in enumerate(cols):
         abs_vals.append(
             col.number_input(
@@ -96,7 +100,6 @@ for i in range(int(num_conc)):
 # CALCULATION
 # =========================
 if st.button("IC₅₀ Hesapla"):
-
     try:
         control_mean = np.mean(control_vals)
 
@@ -106,16 +109,13 @@ if st.button("IC₅₀ Hesapla"):
         # Normalize (% of control)
         response = (absorbance_means / control_mean) * 100
 
-        # -------------------------
-        # INITIAL GUESSES + BOUNDS
-        # -------------------------
+        # Initial guesses + bounds (GraphPad-like)
         p0 = [
             np.min(response),              # bottom
             np.max(response),              # top
             np.median(concentrations),     # IC50
             1.0                             # Hill
         ]
-
         bounds = (
             [0, 50, 0, 0.1],
             [100, 120, np.inf, 5]
@@ -133,16 +133,11 @@ if st.button("IC₅₀ Hesapla"):
         bottom, top, ic50, hill = popt
         max_conc = np.max(concentrations)
 
-        # -------------------------
-        # 95% CONFIDENCE INTERVAL
-        # -------------------------
+        # 95% CI
         ic50_se = np.sqrt(pcov[2, 2])
         ci_low = ic50 - 1.96 * ic50_se
         ci_high = ic50 + 1.96 * ic50_se
 
-        # -------------------------
-        # REPORTING
-        # -------------------------
         if ic50 > max_conc:
             st.warning(f"IC₅₀ > {max_conc} {unit}")
         else:
@@ -151,9 +146,7 @@ if st.button("IC₅₀ Hesapla"):
                 f"(95% CI: {ci_low:.4g} – {ci_high:.4g})"
             )
 
-        # -------------------------
-        # PLOT
-        # -------------------------
+        # Plot
         x_fit = np.logspace(
             np.log10(min(concentrations)),
             np.log10(max(concentrations)),
@@ -164,15 +157,22 @@ if st.button("IC₅₀ Hesapla"):
         fig, ax = plt.subplots()
         ax.scatter(concentrations, response, label="Veri")
         ax.plot(x_fit, y_fit, label="4PL uyum")
-
         ax.axvline(ic50, linestyle="--", linewidth=1, label="IC₅₀")
-
         ax.set_xscale("log")
         ax.set_xlabel(f"Konsantrasyon ({unit})")
         ax.set_ylabel("Normalize yanıt (%)")
         ax.legend()
-
         st.pyplot(fig)
 
     except Exception:
         st.error("Girilen verilerle IC₅₀ ve güven aralığı hesaplanamadı.")
+
+# =========================
+# FOOTER – HOW TO CITE
+# =========================
+st.markdown("---")
+st.markdown(
+    "**How to cite:**  \n"
+    "Şekerler, T. *IC₅₀ Calculator* (v1.0).  \n"
+    "https://turgut-sekerler-ic50.streamlit.app"
+)

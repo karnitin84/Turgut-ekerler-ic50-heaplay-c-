@@ -9,41 +9,111 @@ import matplotlib.pyplot as plt
 # =========================
 # PAGE CONFIG
 # =========================
-st.set_page_config(page_title="IC50 Calculator", page_icon="🧬", layout="centered")
+st.set_page_config(
+    page_title="IC50 Calculator",
+    page_icon="🧬",
+    layout="centered"
+)
 
 # =========================
-# LANGUAGE
+# CUSTOM CSS
+# =========================
+st.markdown("""
+<style>
+.main {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+h1 {
+    color: #1e3a8a;
+    font-weight: 700;
+}
+.metric-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1.5rem;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    margin: 1rem 0;
+}
+.metric-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+.metric-label {
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+.stButton>button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# =========================
+# LANGUAGE DICTIONARY
 # =========================
 LANG = {
     "tr": {
         "title": "🧬 IC₅₀ Hesaplayıcı",
         "subtitle": "4-Parametreli Lojistik Regresyon (4PL)",
-        "calc": "🧮 IC₅₀ HESAPLA",
-        "compound": "Madde adı",
-        "settings": "Deney Ayarları",
+        "compound": "🔬 Madde adı",
+        "settings": "⚙️ Deney Ayarları",
         "rep": "Tekrar sayısı",
         "conc": "Konsantrasyon sayısı",
         "unit": "Birim",
-        "control": "Kontrol absorbansları",
-        "table": "Absorbans tablosu",
+        "control": "🎯 Kontrol absorbansları",
+        "table": "📊 Absorbans Tablosu",
+        "calc": "🧮 IC₅₀ HESAPLA",
         "success": "Hesaplama başarılı",
         "error": "Hesaplama yapılamadı. Verileri kontrol edin.",
         "xlab": "Konsantrasyon ({unit})",
         "ylab": "Normalize yanıt (%)",
         "data": "Veri",
         "fit": "4PL uyum",
+        "ic50": "IC₅₀ Değeri",
         "download_png": "PNG indir",
         "download_pdf": "PDF indir",
+        "author": "Turgut Şekerler"
+    },
+    "en": {
+        "title": "🧬 IC₅₀ Calculator",
+        "subtitle": "4-Parameter Logistic Regression (4PL)",
+        "compound": "🔬 Compound name",
+        "settings": "⚙️ Experiment Settings",
+        "rep": "Replicates",
+        "conc": "Concentrations",
+        "unit": "Unit",
+        "control": "🎯 Control absorbance",
+        "table": "📊 Absorbance Table",
+        "calc": "🧮 CALCULATE IC₅₀",
+        "success": "Calculation successful",
+        "error": "Calculation failed. Check your data.",
+        "xlab": "Concentration ({unit})",
+        "ylab": "Normalized response (%)",
+        "data": "Data",
+        "fit": "4PL fit",
+        "ic50": "IC₅₀ Value",
+        "download_png": "Download PNG",
+        "download_pdf": "Download PDF",
+        "author": "Turgut Sekerler"
     }
 }
 
-T = LANG["tr"]
+language = st.selectbox("🌍 Language / Dil", ["Türkçe", "English"])
+lang = "tr" if language == "Türkçe" else "en"
+T = LANG[lang]
 
 # =========================
 # HEADER
 # =========================
-st.title(T["title"])
+st.markdown(f"# {T['title']}")
 st.caption(T["subtitle"])
+st.caption(T["author"])
+
 compound_name = st.text_input(T["compound"])
 
 # =========================
@@ -98,23 +168,28 @@ if st.button(T["calc"], use_container_width=True):
         bounds = ([0, 80, 0, 0.1], [20, 120, max(concs) * 10, 5])
 
         popt, _ = curve_fit(
-            four_pl, concs, response, p0=p0, bounds=bounds, maxfev=30000
+            four_pl, concs, response,
+            p0=p0, bounds=bounds, maxfev=30000
         )
 
         ic50 = popt[2]
-        st.success(f"{T['success']} – IC₅₀ = {ic50:.4g} {unit}")
+        st.success(T["success"])
 
-        # =========================
-        # SHARED AXIS RANGE
-        # =========================
+        st.markdown(f"""
+        <div class="metric-box">
+            <div class="metric-label">{T['ic50']}</div>
+            <div class="metric-value">{ic50:.4g} {unit}</div>
+            <div class="metric-label">{compound_name or "—"}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ===== SHARED AXIS =====
         xmin = min(concs) / 2
         xmax = max(concs) * 2
         xfit = np.logspace(np.log10(xmin), np.log10(xmax), 400)
         yfit = four_pl(xfit, *popt)
 
-        # =========================
-        # PLOTLY (SCREEN)
-        # =========================
+        # ===== PLOTLY =====
         fig = go.Figure()
         fig.add_scatter(x=concs, y=response, mode="markers", name=T["data"])
         fig.add_scatter(x=xfit, y=yfit, mode="lines", name=T["fit"])
@@ -130,9 +205,7 @@ if st.button(T["calc"], use_container_width=True):
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # =========================
-        # MATPLOTLIB (DOWNLOAD)
-        # =========================
+        # ===== MATPLOTLIB DOWNLOAD =====
         fig_mpl, ax = plt.subplots(figsize=(8, 5))
         ax.scatter(concs, response)
         ax.plot(xfit, yfit)

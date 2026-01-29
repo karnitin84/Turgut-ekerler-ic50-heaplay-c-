@@ -331,8 +331,15 @@ if st.button(T["calc"], use_container_width=True):
 
             response = (abs_vals.mean(axis=1) / np.mean(control_vals)) * 100
 
-            p0 = [min(response), max(response), np.exp(np.mean(np.log(concs))), 1.0]
-            bounds = ([0, 50, 0, 0.1], [100, 120, max(concs) * 10, 5])
+           # Daha stabil ve biyolojik olarak mantıklı başlangıç
+p0 = [0, 100, np.median(concs), 1.0]
+
+# bottom, top, IC50, Hill için güvenli sınırlar
+bounds = (
+    [0, 80, 0, 0.1],        # lower bounds
+    [20, 120, max(concs)*10, 5]  # upper bounds
+)
+
 
             popt, pcov = curve_fit(
                 four_pl,
@@ -507,3 +514,4 @@ st.markdown(f"""
     <a href="https://turgut-sekerler-ic50.streamlit.app" target="_blank">https://turgut-sekerler-ic50.streamlit.app</a>
 </div>
 """, unsafe_allow_html=True)
+
